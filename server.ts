@@ -97,10 +97,10 @@ app.get('/api/download/apk', (_req: Request, res: Response) => {
   res.sendFile(apkPath);
 });
 
-app.get('/api/download/kotlin-source', (_req: Request, res: Response) => {
-  const zipPath = path.resolve(__dirname, 'public', 'downloads', 'JASHPI_Kotlin_Android_Project.zip');
+app.get(['/api/download/kotlin-source', '/api/download/android-studio-zip'], (_req: Request, res: Response) => {
+  const zipPath = path.resolve(__dirname, 'public', 'downloads', 'JASHPI_AI_Emergency_Kotlin_Android_Project.zip');
   res.setHeader('Content-Type', 'application/zip');
-  res.setHeader('Content-Disposition', 'attachment; filename="JASHPI_Kotlin_Android_Project.zip"');
+  res.setHeader('Content-Disposition', 'attachment; filename="JASHPI_AI_Emergency_Kotlin_Android_Project.zip"');
   res.sendFile(zipPath);
 });
 

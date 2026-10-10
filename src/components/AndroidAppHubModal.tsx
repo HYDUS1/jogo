@@ -242,12 +242,12 @@ export const AndroidAppHubModal: React.FC<AndroidAppHubModalProps> = ({
 
                 <div className="pt-1">
                   <a
-                    href="/api/download/kotlin-source"
-                    download="JASHPI_Kotlin_Android_Project.zip"
+                    href="/api/download/android-studio-zip"
+                    download="JASHPI_AI_Emergency_Kotlin_Android_Project.zip"
                     className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center space-x-2 border border-slate-700 cursor-pointer"
                   >
                     <Download className="w-4 h-4 text-emerald-400" />
-                    <span>📦 डाउनलोड Kotlin Android Studio प्रोजेक्ट (.zip)</span>
+                    <span>📦 डाउनलोड Kotlin Android Studio प्रोजेक्ट (.zip) - GitHub Actions Ready</span>
                   </a>
                 </div>
               </div>
