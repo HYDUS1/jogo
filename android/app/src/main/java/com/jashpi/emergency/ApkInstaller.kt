@@ -60,7 +60,7 @@ class ApkInstaller(private val context: Context) {
             setTitle("JASHPI AI - APK Update")
             setDescription("Downloading latest release APK...")
             setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            setDestinationUri(Uri.fromFile(destinationFile))
+            setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, APK_NAME)
             setMimeType("application/vnd.android.package-archive")
         }
 

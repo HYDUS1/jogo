@@ -54,8 +54,9 @@ class MainActivity : AppCompatActivity() {
                 binding.btnInstallApk.isEnabled = true
                 binding.btnInstallApk.text = getString(R.string.install_apk)
 
-                val file = downloadedFile
-                if (file != null && file.exists()) {
+                val file = downloadedFile?.takeIf { it.exists() }
+                    ?: File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), APK_FILE_NAME)
+                if (file.exists()) {
                     Toast.makeText(context, "Download complete. Opening installer...", Toast.LENGTH_SHORT).show()
                     installApk(file)
                 } else {
@@ -78,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         try {
             unregisterReceiver(onDownloadCompleteReceiver)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
             // Receiver already unregistered
         }
     }
@@ -168,7 +169,11 @@ class MainActivity : AppCompatActivity() {
                 setTitle("JASHPI AI - App Update")
                 setDescription("Downloading $APK_FILE_NAME...")
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setDestinationUri(Uri.fromFile(apkFile))
+                setDestinationInExternalFilesDir(
+                    this@MainActivity,
+                    Environment.DIRECTORY_DOWNLOADS,
+                    APK_FILE_NAME
+                )
                 setMimeType("application/vnd.android.package-archive")
             }
 

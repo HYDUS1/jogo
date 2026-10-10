@@ -15,9 +15,9 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@android:drawable/ic_dialog_alert"
+        android:icon="@drawable/ic_jashpi_shield"
         android:label="@string/app_name"
-        android:roundIcon="@android:drawable/ic_dialog_alert"
+        android:roundIcon="@drawable/ic_jashpi_shield"
         android:supportsRtl="true"
         android:theme="@style/Theme.JashpiEmergency">
 
