@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#141E33" />
+      <stop offset="70%" stop-color="#090D18" />
+      <stop offset="100%" stop-color="#04060B" />
+    </radialGradient>
+    
+    <linearGradient id="shieldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F3FF" />
+      <stop offset="50%" stop-color="#FF1744" />
+      <stop offset="100%" stop-color="#00F3FF" />
+    </linearGradient>
+
+    <linearGradient id="shieldFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1A253C" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0B101E" stop-opacity="0.95" />
+    </linearGradient>
+
+    <linearGradient id="crossGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF2A55" />
+      <stop offset="100%" stop-color="#D50000" />
+    </linearGradient>
+
+    <linearGradient id="cyanGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F3FF" />
+      <stop offset="50%" stop-color="#38E1FF" />
+      <stop offset="100%" stop-color="#00F3FF" />
+    </linearGradient>
+
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur1" />
+      <feGaussianBlur stdDeviation="16" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.7" />
+    </filter>
+  </defs>
+
+  <!-- Outer App Icon Base Plate -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#shieldBorder)" stroke-width="3" opacity="0.4" />
+
+  <!-- Outer Ambient Glow Rings -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="#00F3FF" stroke-width="2" opacity="0.15" stroke-dasharray="8 12" />
+  <circle cx="256" cy="256" r="185" fill="none" stroke="#FF1744" stroke-width="1.5" opacity="0.2" />
+
+  <!-- Central Defensive Shield -->
+  <g filter="url(#softShadow)">
+    <path d="M 256 90 
+             C 328 115, 380 135, 388 190
+             C 396 280, 320 370, 256 425
+             C 192 370, 116 280, 124 190
+             C 132 135, 184 115, 256 90 Z"
+          fill="url(#shieldFill)"
+          stroke="url(#shieldBorder)"
+          stroke-width="6" />
+  </g>
+
+  <!-- Inner Emergency Cross Emblem -->
+  <g filter="url(#softShadow)">
+    <!-- Vertical Cross Bar -->
+    <rect x="238" y="155" width="36" height="150" rx="8" fill="url(#crossGrad)" stroke="#FF8A80" stroke-width="1.5" />
+    <!-- Horizontal Cross Bar -->
+    <rect x="181" y="212" width="150" height="36" rx="8" fill="url(#crossGrad)" stroke="#FF8A80" stroke-width="1.5" />
+    <!-- Center Core Badge -->
+    <circle cx="256" cy="230" r="18" fill="#FFFFFF" opacity="0.9" />
+  </g>
+
+  <!-- Dynamic Heartbeat / Lifeline Pulse Wave -->
+  <path d="M 120 320 
+           L 185 320 
+           L 210 320 
+           L 226 270 
+           L 245 375 
+           L 268 250 
+           L 285 340 
+           L 302 320 
+           L 392 320"
+        fill="none"
+        stroke="url(#cyanGlow)"
+        stroke-width="7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        filter="url(#neonGlow)" />
+
+  <!-- Life Pulse Central Indicator Dot -->
+  <circle cx="268" cy="250" r="5" fill="#FFFFFF" filter="url(#neonGlow)" />
+
+  <!-- Modern Acronym Badge Banner "JASHPI" -->
+  <g transform="translate(256, 452)">
+    <rect x="-82" y="-18" width="164" height="28" rx="14" fill="#0E1626" stroke="#00F3FF" stroke-width="1.5" opacity="0.9" />
+    <text x="0" y="2" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="14" fill="#00F3FF" letter-spacing="4">JASHPI</text>
+  </g>
+</svg>

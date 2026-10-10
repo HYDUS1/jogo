@@ -1,0 +1,64 @@
+{
+  "id": "/",
+  "name": "JASHPI - Hands-Free Emergency Response System",
+  "short_name": "JASHPI",
+  "description": "Joint Alert & Support for Health and Personal Emergencies. Ek Tap, Ek Saans, Ek Zindagi.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080810",
+  "theme_color": "#080810",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Instant SOS",
+      "short_name": "SOS",
+      "description": "Trigger instant emergency alert",
+      "url": "/?action=sos"
+    },
+    {
+      "name": "Emergency Dialer",
+      "short_name": "Dialer",
+      "description": "Direct call Police, Ambulance, Fire",
+      "url": "/?tab=dialer"
+    },
+    {
+      "name": "Scan QR Link",
+      "short_name": "Scan QR",
+      "description": "Verify QR contacts, UPI & group links",
+      "url": "/?tab=qr"
+    },
+    {
+      "name": "Ask Jashpi AI",
+      "short_name": "Ask AI",
+      "description": "Emergency first aid & CPR instructions",
+      "url": "/?tab=ai"
+    }
+  ]
+}

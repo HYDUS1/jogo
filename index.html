@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>JASHPI - Hands-Free Emergency Response System</title>
+    <meta name="description" content="Joint Alert & Support for Health and Personal Emergencies (Ek Tap, Ek Saans, Ek Zindagi). Real-time hands-free voice trigger, sensor fusion, AI triage, and emergency dispatch." />
+    <meta property="og:title" content="JASHPI - Hands-Free Emergency Response System" />
+    <meta property="og:description" content="Joint Alert & Support for Health and Personal Emergencies (Ek Tap, Ek Saans, Ek Zindagi). Real-time hands-free voice trigger, sensor fusion, AI triage, and emergency dispatch." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#080810" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="JASHPI" />
+    <script>
+      // Suppress benign Vite HMR WebSocket disconnections in cloud preview sandbox
+      window.addEventListener('error', function(event) {
+        if (
+          event &&
+          ((event.message && (event.message.includes('WebSocket') || event.message.includes('closed without opened'))) ||
+           (event.filename && event.filename.includes('@vite/client')))
+        ) {
+          event.preventDefault?.();
+          event.stopImmediatePropagation?.();
+          return true;
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function(event) {
+        if (
+          event && event.reason &&
+          ((typeof event.reason === 'string' && (event.reason.includes('WebSocket') || event.reason.includes('closed without opened'))) ||
+           (event.reason.message && (event.reason.message.includes('WebSocket') || event.reason.message.includes('closed without opened'))))
+        ) {
+          event.preventDefault?.();
+          event.stopImmediatePropagation?.();
+        }
+      }, true);
+    </script>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  </head>
+  <body class="bg-[#080810] text-slate-100 antialiased selection:bg-[#00F3FF] selection:text-black min-h-screen">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

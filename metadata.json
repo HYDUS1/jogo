@@ -1,0 +1,12 @@
+{
+  "name": "JASHPI - Hands-Free Emergency Response System",
+  "description": "Joint Alert & Support for Health and Personal Emergencies (Ek Tap, Ek Saans, Ek Zindagi). Real-time hands-free voice trigger, sensor fusion, AI triage, and emergency dispatch.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation",
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
