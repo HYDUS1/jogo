@@ -410,16 +410,13 @@ export const AiConversationalView: React.FC<AiConversationalViewProps> = ({
             : `🚨 *JASHPI EMERGENCY SOS!*\nName: ${userName || 'User'}\nLive GPS Location: ${mapLink}\nAccuracy: ±${accuracy}m\nTime: ${new Date().toLocaleTimeString()}\nPlease send immediate assistance!`;
 
           const encoded = encodeURIComponent(messageText);
-          const whatsappUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+          const targetPhone = primaryContact?.phone ? primaryContact.phone.replace(/[^0-9]/g, '') : '';
+          const whatsappUrl = targetPhone
+            ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encoded}`
+            : `https://api.whatsapp.com/send?text=${encoded}`;
 
-          // Open WhatsApp directly without popup blockers
-          const link = document.createElement('a');
-          link.href = whatsappUrl;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+          // Navigate directly to WhatsApp app URL
+          window.location.href = whatsappUrl;
 
           setMessages((prev) => [
             ...prev,

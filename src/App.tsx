@@ -566,10 +566,8 @@ export default function App() {
     setHolidayModeActive(active);
     localStorage.setItem('jashpi_holiday_mode', JSON.stringify(active));
     if (active) {
-      playBeep(650, 150);
       speakVoiceFeedback('Holiday Wander Mode activated. 3-hour inactivity SOS is safely paused.');
     } else {
-      playBeep(550, 150);
       speakVoiceFeedback('Holiday Wander Mode turned off. Inactivity welfare monitoring resumed.');
     }
   };
@@ -686,21 +684,31 @@ export default function App() {
             navigator.geolocation.getCurrentPosition(
               (p) => {
                 const mapsLink = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`;
-                const text = `🚨 *JASHPI EMERGENCY SOS!*\\nName: ${userProfile.name || 'User'}\\nLive GPS: ${mapsLink}\\nTime: ${new Date().toLocaleTimeString()}\\nPlease send immediate help!`;
-                const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-                const a = document.createElement('a');
-                a.href = whatsappUrl;
-                a.target = '_blank';
-                a.rel = 'noopener noreferrer';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+                const text = `🚨 *JASHPI EMERGENCY SOS!*
+Name: ${userProfile.name || 'User'}
+Live GPS: ${mapsLink}
+Time: ${new Date().toLocaleTimeString()}
+Please send immediate help!`;
+                const primary = contacts.find((c) => c.callEnabled) || contacts[0];
+                const targetPhone = primary?.phone ? primary.phone.replace(/[^0-9]/g, '') : '';
+                const whatsappUrl = targetPhone
+                  ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(text)}`
+                  : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                window.location.href = whatsappUrl;
               },
               () => {
-                window.location.href = `https://api.whatsapp.com/send?text=${encodeURIComponent('🚨 JASHPI EMERGENCY SOS! Please send immediate help!')}`;
+                const primary = contacts.find((c) => c.callEnabled) || contacts[0];
+                const targetPhone = primary?.phone ? primary.phone.replace(/[^0-9]/g, '') : '';
+                const baseText = '🚨 JASHPI EMERGENCY SOS! Please send immediate help!';
+                const fallbackUrl = targetPhone
+                  ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(baseText)}`
+                  : `https://api.whatsapp.com/send?text=${encodeURIComponent(baseText)}`;
+                window.location.href = fallbackUrl;
               },
               { enableHighAccuracy: true, timeout: 5000 }
             );
+          } else {
+            window.location.href = `https://api.whatsapp.com/send?text=${encodeURIComponent('🚨 JASHPI EMERGENCY SOS! Please send immediate help!')}`;
           }
         } else if (action === 'TELEGRAM_ALERT') {
           const token = localStorage.getItem('jashpi_telegram_bot_token') || undefined;
@@ -708,7 +716,11 @@ export default function App() {
           if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(async (p) => {
               const mapsLink = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`;
-              const text = `🚨 *JASHPI EMERGENCY ALERT* 🚨\\n*Name:* ${userProfile.name || 'User'}\\n*Location:* ${mapsLink}\\n*Time:* ${new Date().toLocaleTimeString()}`;
+              const text = `🚨 JASHPI EMERGENCY ALERT 🚨
+Name: ${userProfile.name || 'User'}
+Location: ${mapsLink}
+Time: ${new Date().toLocaleTimeString()}
+Immediate help requested!`;
               if (chatId) {
                 await sendTelegramAlertApi(chatId, text, p.coords.latitude, p.coords.longitude, token);
               } else {

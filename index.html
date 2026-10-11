@@ -16,27 +16,47 @@
     <meta name="apple-mobile-web-app-title" content="JASHPI" />
     <script>
       // Suppress benign Vite HMR WebSocket disconnections in cloud preview sandbox
-      window.addEventListener('error', function(event) {
-        if (
-          event &&
-          ((event.message && (event.message.includes('WebSocket') || event.message.includes('closed without opened'))) ||
-           (event.filename && event.filename.includes('@vite/client')))
-        ) {
-          event.preventDefault?.();
-          event.stopImmediatePropagation?.();
-          return true;
-        }
-      }, true);
-      window.addEventListener('unhandledrejection', function(event) {
-        if (
-          event && event.reason &&
-          ((typeof event.reason === 'string' && (event.reason.includes('WebSocket') || event.reason.includes('closed without opened'))) ||
-           (event.reason.message && (event.reason.message.includes('WebSocket') || event.reason.message.includes('closed without opened'))))
-        ) {
-          event.preventDefault?.();
-          event.stopImmediatePropagation?.();
-        }
-      }, true);
+      (function() {
+        var origError = console.error;
+        console.error = function() {
+          for (var i = 0; i < arguments.length; i++) {
+            var arg = arguments[i];
+            if (arg) {
+              var str = typeof arg === 'string' ? arg : (arg.message || String(arg));
+              if (
+                str.indexOf('WebSocket closed without opened') !== -1 ||
+                (str.indexOf('[vite]') !== -1 && str.indexOf('WebSocket') !== -1) ||
+                str.indexOf('WebSocket connection to') !== -1
+              ) {
+                return;
+              }
+            }
+          }
+          origError.apply(console, arguments);
+        };
+
+        window.addEventListener('error', function(event) {
+          if (
+            event &&
+            ((event.message && (event.message.indexOf('WebSocket') !== -1 || event.message.indexOf('closed without opened') !== -1)) ||
+             (event.filename && event.filename.indexOf('@vite/client') !== -1))
+          ) {
+            if (event.preventDefault) event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          if (event && event.reason) {
+            var str = typeof event.reason === 'string' ? event.reason : (event.reason.message || '');
+            if (str.indexOf('WebSocket') !== -1 || str.indexOf('closed without opened') !== -1) {
+              if (event.preventDefault) event.preventDefault();
+              if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            }
+          }
+        }, true);
+      })();
     </script>
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />

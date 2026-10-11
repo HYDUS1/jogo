@@ -99,16 +99,67 @@ export async function updateLiveLocationApi(
 }
 
 export async function sendTelegramAlertApi(chatId: string, message: string, latitude?: number, longitude?: number, botToken?: string) {
+  const cleanChatId = (chatId || '').trim();
+  const cleanToken = (botToken || '').trim();
+  const cleanMessage = message || '🚨 JASHPI Emergency Alert Notification';
+
+  // 1. Try server endpoint first
   try {
     const res = await fetch('/api/telegram', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatId, message, latitude, longitude, botToken }),
+      body: JSON.stringify({ chatId: cleanChatId, message: cleanMessage, latitude, longitude, botToken: cleanToken }),
     });
-    return await res.json();
-  } catch (err: any) {
-    return { success: false, error: err.message };
+    const data = await res.json();
+    if (res.ok && data.success) {
+      return data;
+    }
+  } catch (_err) {
+    // Server fetch failed, proceed to direct client fallback if token is available
   }
+
+  // 2. Direct Telegram API fallback if client token is present
+  if (cleanToken && cleanChatId) {
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${cleanToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: cleanChatId,
+          text: cleanMessage,
+          disable_web_page_preview: false,
+        }),
+      });
+
+      const tgData = await tgRes.json().catch(() => ({}));
+
+      if (tgRes.ok) {
+        if (latitude && longitude) {
+          try {
+            await fetch(`https://api.telegram.org/bot${cleanToken}/sendLocation`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: cleanChatId,
+                latitude: Number(latitude),
+                longitude: Number(longitude),
+              }),
+            });
+          } catch (_e) {}
+        }
+        return { success: true, messageId: tgData.result?.message_id };
+      } else {
+        return {
+          success: false,
+          error: tgData.description || `Telegram API error (${tgRes.status})`,
+        };
+      }
+    } catch (directErr: any) {
+      return { success: false, error: directErr.message || 'Direct Telegram network error' };
+    }
+  }
+
+  return { success: false, error: 'Telegram dispatch failed: missing valid token or chat ID.' };
 }
 
 export async function fetchHealthApi() {

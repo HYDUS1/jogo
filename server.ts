@@ -167,7 +167,7 @@ app.post('/api/emergency', async (req: Request, res: Response) => {
         const mapsLink = latitude && longitude ? `https://www.google.com/maps?q=${latitude},${longitude}` : 'Location unavailable';
         const textMessage = `🚨 *JASHPI EMERGENCY ALERT* 🚨\n\n*Name:* ${userName}\n*Emergency:* ${emergencyType}\n*Trigger:* ${triggerType} (Confidence: ${Math.round(confidence * 100)}%)\n*Battery:* ${battery ?? 'N/A'}%\n*Time:* ${new Date().toLocaleTimeString()}\n\n📍 *Location:* ${mapsLink}\n(Accuracy: ${accuracy ? Math.round(accuracy) + 'm' : 'approx'})`;
 
-        const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        let tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -178,8 +178,33 @@ app.post('/api/emergency', async (req: Request, res: Response) => {
           }),
         });
 
+        if (!tgRes.ok) {
+          tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: targetChatId,
+              text: textMessage,
+              disable_web_page_preview: false,
+            }),
+          });
+        }
+
         if (tgRes.ok) {
           newEvent.telegramStatus = 'SENT';
+          if (latitude && longitude) {
+            try {
+              await fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chat_id: targetChatId,
+                  latitude: Number(latitude),
+                  longitude: Number(longitude),
+                }),
+              });
+            } catch (_l) {}
+          }
         } else {
           newEvent.telegramStatus = 'FAILED_HTTP_' + tgRes.status;
         }
@@ -259,29 +284,47 @@ app.post('/api/telegram', rateLimiter(500), async (req: Request, res: Response) 
       return;
     }
 
-    // Send text
-    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    const cleanChatId = String(targetChatId).trim();
+    const alertText = String(message || '🚨 JASHPI Emergency Alert Notification');
+
+    // Attempt 1: Send message with Markdown formatting
+    let tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: targetChatId,
-        text: message || '🚨 JASHPI Emergency Alert Notification',
+        chat_id: cleanChatId,
+        text: alertText,
         parse_mode: 'Markdown',
+        disable_web_page_preview: false,
       }),
     });
 
-    const data = await tgRes.json();
+    let data = await tgRes.json().catch(() => ({}));
 
-    // If coordinates provided, send location pinpoint as well
+    // If Markdown failed (e.g. 400 Bad Request: can't parse entities due to underscores/links), retry as plain text
+    if (!tgRes.ok) {
+      tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: cleanChatId,
+          text: alertText,
+          disable_web_page_preview: false,
+        }),
+      });
+      data = await tgRes.json().catch(() => ({}));
+    }
+
+    // If coordinates provided, send pin on Telegram map
     if (latitude && longitude && tgRes.ok) {
       try {
         await fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: targetChatId,
-            latitude,
-            longitude,
+            chat_id: cleanChatId,
+            latitude: Number(latitude),
+            longitude: Number(longitude),
           }),
         });
       } catch (locErr) {
