@@ -159,8 +159,8 @@ app.post('/api/emergency', async (req: Request, res: Response) => {
     };
 
     // Relay to Telegram if configured
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const targetChatId = telegramChatId || process.env.DEFAULT_TELEGRAM_CHAT_ID;
+    const botToken = req.body.telegramBotToken || req.body.botToken || process.env.TELEGRAM_BOT_TOKEN;
+    const targetChatId = telegramChatId || req.body.chatId || process.env.DEFAULT_TELEGRAM_CHAT_ID;
 
     if (botToken && botToken !== 'your_telegram_bot_token_here' && targetChatId) {
       try {
@@ -242,20 +242,20 @@ app.post('/api/location', (req: Request, res: Response) => {
 // 4. Telegram Relay Endpoint
 app.post('/api/telegram', rateLimiter(500), async (req: Request, res: Response) => {
   try {
-    const { chatId, message, latitude, longitude } = req.body;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const { chatId, message, latitude, longitude, botToken: clientBotToken, telegramBotToken } = req.body;
+    const botToken = clientBotToken || telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
 
     if (!botToken || botToken === 'your_telegram_bot_token_here') {
-      res.status(503).json({
+      res.status(400).json({
         success: false,
-        error: 'Telegram bot token is not configured on the server. Set TELEGRAM_BOT_TOKEN in .env',
+        error: 'Telegram bot token is not configured. Please enter your Bot Token in the AI Settings or .env',
       });
       return;
     }
 
-    const targetChatId = chatId || process.env.DEFAULT_TELEGRAM_CHAT_ID;
+    const targetChatId = chatId || req.body.telegramChatId || process.env.DEFAULT_TELEGRAM_CHAT_ID;
     if (!targetChatId) {
-      res.status(400).json({ error: 'Missing chatId' });
+      res.status(400).json({ error: 'Missing Telegram Chat ID. Enter your Chat ID to receive alerts.' });
       return;
     }
 

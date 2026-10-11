@@ -5,7 +5,7 @@ export interface VoiceEventHandlers {
   onEmergencyCommand?: (command: string, type: string, confidence: number) => void;
   onPanicBurst?: (phrase: string, count: number) => void;
   onCancelCommand?: () => void;
-  onActionCommand?: (action: 'FLASHLIGHT_ON' | 'FLASHLIGHT_OFF' | 'SIREN_ON' | 'SIREN_OFF' | 'MAKE_CALL' | 'EMERGENCY_DIALER' | 'SHARE_LOCATION' | 'STEALTH_MODE' | 'QR_SCANNER' | 'OTP_SHIELD' | 'HOLIDAY_MODE' | 'SNATCH_SOS' | 'ANDROID_APP') => void;
+  onActionCommand?: (action: 'FLASHLIGHT_ON' | 'FLASHLIGHT_OFF' | 'SIREN_ON' | 'SIREN_OFF' | 'MAKE_CALL' | 'EMERGENCY_DIALER' | 'SHARE_LOCATION' | 'WHATSAPP_LOCATION' | 'TELEGRAM_ALERT' | 'STEALTH_MODE' | 'QR_SCANNER' | 'OTP_SHIELD' | 'HOLIDAY_MODE' | 'SNATCH_SOS' | 'ANDROID_APP') => void;
   onTranscriptChange?: (text: string, isFinal: boolean) => void;
   onError?: (err: string) => void;
   onListeningStateChange?: (active: boolean) => void;
@@ -145,7 +145,7 @@ export class HandsFreeSpeechEngine {
     return this.shouldRun && this.isListening;
   }
 
-  private dispatchActionWithDebounce(action: 'FLASHLIGHT_ON' | 'FLASHLIGHT_OFF' | 'SIREN_ON' | 'SIREN_OFF' | 'MAKE_CALL' | 'EMERGENCY_DIALER' | 'SHARE_LOCATION' | 'STEALTH_MODE' | 'QR_SCANNER' | 'OTP_SHIELD' | 'HOLIDAY_MODE' | 'SNATCH_SOS' | 'ANDROID_APP', voiceMsg?: string) {
+  private dispatchActionWithDebounce(action: 'FLASHLIGHT_ON' | 'FLASHLIGHT_OFF' | 'SIREN_ON' | 'SIREN_OFF' | 'MAKE_CALL' | 'EMERGENCY_DIALER' | 'SHARE_LOCATION' | 'WHATSAPP_LOCATION' | 'TELEGRAM_ALERT' | 'STEALTH_MODE' | 'QR_SCANNER' | 'OTP_SHIELD' | 'HOLIDAY_MODE' | 'SNATCH_SOS' | 'ANDROID_APP', voiceMsg?: string) {
     const now = Date.now();
     if (this.lastExecutedAction === action && now - this.lastExecutedTime < 2000) {
       return; // Prevent duplicate rapid bursts
@@ -260,15 +260,32 @@ export class HandsFreeSpeechEngine {
       return;
     }
 
-    // 6. Share Location
+    // 6. Share Location & WhatsApp Live Location
     if (
+      text.includes('whatsapp') ||
+      text.includes('whatsapp pe') ||
+      text.includes('whatsapp location') ||
       text.includes('share my location') ||
       text.includes('share location') ||
       text.includes('send location') ||
       text.includes('location bhejo') ||
-      text.includes('kahan hu')
+      text.includes('live location') ||
+      text.includes('kahan hu') ||
+      text.includes('meri location')
     ) {
-      this.dispatchActionWithDebounce('SHARE_LOCATION', 'Sharing live location.');
+      this.dispatchActionWithDebounce('WHATSAPP_LOCATION');
+      return;
+    }
+
+    // 6b. Telegram Emergency Alert
+    if (
+      text.includes('telegram') ||
+      text.includes('telegram bhejo') ||
+      text.includes('telegram alert') ||
+      text.includes('telegram message') ||
+      text.includes('send telegram')
+    ) {
+      this.dispatchActionWithDebounce('TELEGRAM_ALERT');
       return;
     }
 

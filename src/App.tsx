@@ -64,7 +64,8 @@ import {
   updateLiveLocationApi,
   fetchEventsApi,
   clearEventsApi,
-  syncOfflineEvents
+  syncOfflineEvents,
+  sendTelegramAlertApi
 } from './services/emergencyApi';
 import { toggleFlashlight, isTorchOn, subscribeTorchState } from './services/flashlight';
 import { broadcastOfflineMeshSos, NearbyPeer } from './services/nearbyMesh';
@@ -143,10 +144,10 @@ export default function App() {
     }
   });
 
-  const [onboardingOpen, setOnboardingOpen] = useState<boolean>(() => !userProfile.name);
+  const [onboardingOpen, setOnboardingOpen] = useState<boolean>(false);
 
-  // Active Navigation Tab: Defaults to 'home' All-in-One Dashboard
-  const [activeTab, setActiveTab] = useState<'home' | 'ai' | 'tools' | 'contacts'>('home');
+  // Active Navigation Tab: Defaults to 'ai' Unified Copilot & Tools Hub
+  const [activeTab, setActiveTab] = useState<'ai' | 'home' | 'tools' | 'contacts'>('ai');
   const [emergencyDialerOpen, setEmergencyDialerOpen] = useState<boolean>(false);
   const [aiPrefilledPrompt, setAiPrefilledPrompt] = useState<string | undefined>(undefined);
   const [activeLanguage, setActiveLanguage] = useState<string>(() => userProfile.language || 'hi');
@@ -680,13 +681,39 @@ export default function App() {
         } else if (action === 'MAKE_CALL') {
           const prim = contacts.find((c) => c.callEnabled) || contacts[0];
           if (prim) window.location.href = `tel:${prim.phone}`;
-        } else if (action === 'SHARE_LOCATION') {
+        } else if (action === 'SHARE_LOCATION' || action === 'WHATSAPP_LOCATION') {
           if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition((p) => {
-              const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(
-                `🚨 JASHPI Live Location Broadcast: https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`
-              )}`;
-              window.open(url, '_blank');
+            navigator.geolocation.getCurrentPosition(
+              (p) => {
+                const mapsLink = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`;
+                const text = `🚨 *JASHPI EMERGENCY SOS!*\\nName: ${userProfile.name || 'User'}\\nLive GPS: ${mapsLink}\\nTime: ${new Date().toLocaleTimeString()}\\nPlease send immediate help!`;
+                const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                const a = document.createElement('a');
+                a.href = whatsappUrl;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+              },
+              () => {
+                window.location.href = `https://api.whatsapp.com/send?text=${encodeURIComponent('🚨 JASHPI EMERGENCY SOS! Please send immediate help!')}`;
+              },
+              { enableHighAccuracy: true, timeout: 5000 }
+            );
+          }
+        } else if (action === 'TELEGRAM_ALERT') {
+          const token = localStorage.getItem('jashpi_telegram_bot_token') || undefined;
+          const chatId = localStorage.getItem('jashpi_telegram_chat_id') || undefined;
+          if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(async (p) => {
+              const mapsLink = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`;
+              const text = `🚨 *JASHPI EMERGENCY ALERT* 🚨\\n*Name:* ${userProfile.name || 'User'}\\n*Location:* ${mapsLink}\\n*Time:* ${new Date().toLocaleTimeString()}`;
+              if (chatId) {
+                await sendTelegramAlertApi(chatId, text, p.coords.latitude, p.coords.longitude, token);
+              } else {
+                window.location.href = `https://t.me/share/url?url=${encodeURIComponent(mapsLink)}&text=${encodeURIComponent('🚨 JASHPI Emergency SOS Alert!')}`;
+              }
             });
           }
         } else if (action === 'QR_SCANNER') {
@@ -702,7 +729,7 @@ export default function App() {
         } else if (action === 'EMERGENCY_DIALER') {
           setEmergencyDialerOpen(true);
         } else if (action === 'ANDROID_APP') {
-          setAndroidHubOpen(true);
+          // Keep quiet without popup
         }
       },
       onTranscriptChange: (text) => {
@@ -1122,8 +1149,8 @@ export default function App() {
         <div className="max-w-4xl mx-auto mt-2 pt-2 border-t border-white/10 hidden sm:flex items-center justify-between text-xs">
           <div className="flex space-x-2">
             {[
-              { id: 'home' as const, label: activeLanguage === 'hi' ? 'होम' : 'Home', icon: ShieldAlert },
-              { id: 'ai' as const, label: activeLanguage === 'hi' ? 'स्मार्ट AI कॉपायलट' : 'Smart AI Copilot', icon: Bot },
+              { id: 'ai' as const, label: activeLanguage === 'hi' ? 'स्मार्ट AI' : 'Smart AI', icon: Bot },
+              { id: 'home' as const, label: activeLanguage === 'hi' ? 'डैशबोर्ड' : 'Dashboard', icon: ShieldAlert },
               { id: 'tools' as const, label: activeLanguage === 'hi' ? 'स्मार्ट टूल्स' : 'Smart Tools', icon: Zap },
               { id: 'contacts' as const, label: activeLanguage === 'hi' ? 'संपर्क व परिवार' : 'Emergency Contacts', icon: Users },
             ].map((tab) => {
@@ -1397,8 +1424,8 @@ export default function App() {
         isDarkMode ? 'bg-[#0f1424]/95 border-white/10' : 'bg-white/95 border-slate-200'
       }`}>
         {[
-          { id: 'home' as const, label: activeLanguage === 'hi' ? 'होम' : 'Home', icon: ShieldAlert },
           { id: 'ai' as const, label: activeLanguage === 'hi' ? 'स्मार्ट AI' : 'Smart AI', icon: Bot },
+          { id: 'home' as const, label: activeLanguage === 'hi' ? 'डैशबोर्ड' : 'Dashboard', icon: ShieldAlert },
           { id: 'tools' as const, label: activeLanguage === 'hi' ? 'टूल्स' : 'Tools', icon: Zap },
           { id: 'contacts' as const, label: activeLanguage === 'hi' ? 'संपर्क' : 'Contacts', icon: Users },
         ].map((tab) => {

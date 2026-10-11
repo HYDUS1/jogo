@@ -5,6 +5,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.hardware.camera2.CameraManager
+import android.location.Location
+import android.location.LocationManager
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioTrack
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -19,12 +26,20 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.jashpi.emergency.databinding.ActivityMainBinding
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var downloadId: Long = -1L
     private var downloadedFile: File? = null
+
+    // Torch & Siren states
+    private var isTorchOn: Boolean = false
+    private var isSirenRunning: Boolean = false
+    private var sirenThread: Thread? = null
 
     companion object {
         const val APK_DOWNLOAD_URL = "https://github.com/HYDUS1/jogo/releases/download/v1.0/app-debug.apk"
@@ -40,7 +55,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Permission granted. Starting APK download...", Toast.LENGTH_SHORT).show()
                 startApkDownload()
             } else {
-                Toast.makeText(this, "Install permission is required to install APK update.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Install permission required to install APK update.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -77,6 +92,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopSiren()
+        turnOffTorch()
         try {
             unregisterReceiver(onDownloadCompleteReceiver)
         } catch (e: Exception) {
@@ -99,27 +116,49 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        // Top Right Working Install Button
+        // 1. Top Right Working Install Button (DownloadManager + FileProvider)
         binding.btnInstallApk.setOnClickListener {
             handleInstallButtonClick()
         }
 
-        // SOS Button
+        // 2. Giant SOS Button (Alerts Police 112 + WhatsApp + Siren)
         binding.btnSos.setOnClickListener {
+            toggleSiren(true)
+            shareWhatsAppLocation()
             val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))
             startActivity(dialIntent)
         }
 
-        // 112 Police Button
+        // 3. 112 Police Button
         binding.btnCallPolice.setOnClickListener {
             val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))
             startActivity(dialIntent)
         }
 
-        // 108 Ambulance Button
+        // 4. 108 Ambulance Button
         binding.btnCallAmbulance.setOnClickListener {
             val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:108"))
             startActivity(dialIntent)
+        }
+
+        // 5. WhatsApp Live GPS Location Button
+        binding.btnWhatsappLocation.setOnClickListener {
+            shareWhatsAppLocation()
+        }
+
+        // 6. Telegram Emergency Alert Button
+        binding.btnTelegramAlert.setOnClickListener {
+            sendTelegramEmergencyAlert()
+        }
+
+        // 7. Flashlight / Torch Toggle Button
+        binding.btnTorch.setOnClickListener {
+            toggleTorch()
+        }
+
+        // 8. Loud Emergency Siren Button
+        binding.btnSiren.setOnClickListener {
+            toggleSiren()
         }
     }
 
@@ -212,6 +251,177 @@ class MainActivity : AppCompatActivity() {
             startActivity(installIntent)
         } catch (e: Exception) {
             Toast.makeText(this, "Installer error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * Acquires last known location and opens WhatsApp with live location text and Google Maps pin.
+     */
+    private fun shareWhatsAppLocation() {
+        try {
+            val loc = getLastKnownLocation()
+            val mapsLink = if (loc != null) {
+                "https://www.google.com/maps?q=${loc.latitude},${loc.longitude}"
+            } else {
+                "Location not fixed yet (GPS scanning)"
+            }
+
+            val text = "🚨 *JASHPI EMERGENCY SOS ALERT* 🚨\n" +
+                    "Immediate help required!\n" +
+                    "Live Location: $mapsLink\n" +
+                    "Time: ${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}"
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("https://api.whatsapp.com/send?text=${Uri.encode(text)}")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "WhatsApp error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * Broadcasts emergency alert to Telegram Bot API in background thread.
+     */
+    private fun sendTelegramEmergencyAlert() {
+        Toast.makeText(this, "Broadcasting emergency alert to Telegram...", Toast.LENGTH_SHORT).show()
+        thread {
+            try {
+                val loc = getLastKnownLocation()
+                val mapsLink = if (loc != null) {
+                    "https://www.google.com/maps?q=${loc.latitude},${loc.longitude}"
+                } else {
+                    "Coordinates pending fix"
+                }
+
+                // Default relay endpoint or direct Telegram share
+                val shareUrl = "https://t.me/share/url?url=${Uri.encode(mapsLink)}&text=${Uri.encode("🚨 JASHPI EMERGENCY SOS!")}"
+                runOnUiThread {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(shareUrl)).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    startActivity(intent)
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    Toast.makeText(this, "Telegram alert: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    /**
+     * Toggles device LED flashlight via CameraManager.
+     */
+    private fun toggleTorch() {
+        try {
+            val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            val cameraId = cameraManager.cameraIdList.firstOrNull() ?: return
+            isTorchOn = !isTorchOn
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                cameraManager.setTorchMode(cameraId, isTorchOn)
+            }
+            binding.btnTorch.text = if (isTorchOn) "Torch ON" else "Flashlight"
+            Toast.makeText(this, if (isTorchOn) "Flashlight ON" else "Flashlight OFF", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Torch error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun turnOffTorch() {
+        if (isTorchOn) {
+            try {
+                val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+                val cameraId = cameraManager.cameraIdList.firstOrNull() ?: return
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    cameraManager.setTorchMode(cameraId, false)
+                }
+                isTorchOn = false
+            } catch (e: Exception) {}
+        }
+    }
+
+    /**
+     * Toggles high-decibel synthetic emergency siren tone using AudioTrack.
+     */
+    private fun toggleSiren(forceStart: Boolean = false) {
+        if (isSirenRunning && !forceStart) {
+            stopSiren()
+            binding.btnSiren.text = "Alarm Siren"
+            Toast.makeText(this, "Siren silenced", Toast.LENGTH_SHORT).show()
+        } else {
+            startSiren()
+            binding.btnSiren.text = "Stop Siren"
+            Toast.makeText(this, "🚨 Loud Siren Activated!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun startSiren() {
+        if (isSirenRunning) return
+        isSirenRunning = true
+
+        sirenThread = thread {
+            try {
+                val sampleRate = 44100
+                val minBufferSize = AudioTrack.getMinBufferSize(
+                    sampleRate,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT
+                )
+
+                val audioTrack = AudioTrack(
+                    AudioManager.STREAM_ALARM,
+                    sampleRate,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    minBufferSize * 2,
+                    AudioTrack.MODE_STREAM
+                )
+
+                audioTrack.play()
+
+                val buffer = ShortArray(1024)
+                var currentFreq = 600.0
+                var goingUp = true
+
+                while (isSirenRunning) {
+                    if (goingUp) {
+                        currentFreq += 15.0
+                        if (currentFreq >= 1200.0) goingUp = false
+                    } else {
+                        currentFreq -= 15.0
+                        if (currentFreq <= 600.0) goingUp = true
+                    }
+
+                    for (i in buffer.indices) {
+                        val angle = 2.0 * Math.PI * i / (sampleRate / currentFreq)
+                        buffer[i] = (Math.sin(angle) * Short.MAX_VALUE).toInt().toShort()
+                    }
+
+                    audioTrack.write(buffer, 0, buffer.size)
+                }
+
+                audioTrack.stop()
+                audioTrack.release()
+            } catch (e: Exception) {}
+        }
+    }
+
+    private fun stopSiren() {
+        isSirenRunning = false
+        sirenThread?.interrupt()
+        sirenThread = null
+    }
+
+    private fun getLastKnownLocation(): Location? {
+        val lm = getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+        return try {
+            val gpsLoc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            val netLoc = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            gpsLoc ?: netLoc
+        } catch (e: SecurityException) {
+            null
         }
     }
 }

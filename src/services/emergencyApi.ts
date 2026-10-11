@@ -98,12 +98,12 @@ export async function updateLiveLocationApi(
   } catch (_e) {}
 }
 
-export async function sendTelegramAlertApi(chatId: string, message: string, latitude?: number, longitude?: number) {
+export async function sendTelegramAlertApi(chatId: string, message: string, latitude?: number, longitude?: number, botToken?: string) {
   try {
     const res = await fetch('/api/telegram', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatId, message, latitude, longitude }),
+      body: JSON.stringify({ chatId, message, latitude, longitude, botToken }),
     });
     return await res.json();
   } catch (err: any) {
