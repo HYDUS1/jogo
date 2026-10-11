@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build Debug APK
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
@@ -22,37 +22,40 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle Build Environment
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.4'
 
-      - name: Prepare Gradle Wrapper & Permissions
+      - name: Prepare Android Project Structure & Permissions
         run: |
-          echo "=== Repository Contents ==="
+          echo "=== Workspace files ==="
           ls -la
 
-          # Normalize line endings to avoid Windows CRLF issues
+          # Normalize CRLF line endings
           sed -i 's/\r$//' ./gradlew 2>/dev/null || true
           sed -i 's/\r$//' ./android/gradlew 2>/dev/null || true
 
-          # Grant execution permissions
+          # Set execution permissions
           chmod +x ./gradlew 2>/dev/null || true
           chmod +x ./android/gradlew 2>/dev/null || true
 
-          # Ensure project files are present in both root and android/ directories
+          # If Android project is in android/ folder, synchronize to root
           if [ -d "android/app" ] && [ ! -d "app" ]; then
-            echo "Copying android/app to root..."
+            echo "Syncing android/app to root..."
             cp -r android/app ./app
           fi
-          if [ -d "app" ] && [ ! -d "android/app" ]; then
-            echo "Ensuring android/app directory exists..."
-            mkdir -p android
-            cp -r app android/app
+          if [ -f "android/build.gradle" ] && [ ! -f "build.gradle" ]; then
+            cp android/build.gradle ./build.gradle
+          fi
+          if [ -f "android/settings.gradle" ] && [ ! -f "settings.gradle" ]; then
+            cp android/settings.gradle ./settings.gradle
+          fi
+          if [ -d "android/gradle" ] && [ ! -d "gradle" ]; then
+            cp -r android/gradle ./gradle
           fi
           if [ -f "android/gradlew" ] && [ ! -f "gradlew" ]; then
             cp android/gradlew ./gradlew
-            cp -r android/gradle ./gradle
             chmod +x ./gradlew
           fi
 
@@ -60,25 +63,25 @@ jobs:
         run: |
           echo "=== Building APK ==="
           if [ -f "./gradlew" ] && { [ -d "./app" ] || [ -f "./build.gradle" ]; }; then
-            echo "Building from repository root using ./gradlew..."
+            echo "Building from root using ./gradlew..."
             ./gradlew assembleDebug --no-daemon --stacktrace || gradle assembleDebug --no-daemon --stacktrace
           elif [ -d "./android" ] && [ -f "./android/gradlew" ]; then
-            echo "Building from android/ subdirectory using ./gradlew..."
+            echo "Building inside android/ folder..."
             cd android
             chmod +x ./gradlew
             ./gradlew assembleDebug --no-daemon --stacktrace || gradle assembleDebug --no-daemon --stacktrace
             cd ..
           else
-            echo "Fallback: Building with system Gradle 8.4..."
+            echo "Building directly with installed Gradle 8.4..."
             gradle assembleDebug --no-daemon --stacktrace
           fi
 
       - name: Verify Generated APK
         run: |
-          echo "=== Searching for generated APK files ==="
+          echo "=== Finding generated APKs ==="
           find . -name "*.apk" -type f -ls
 
-      - name: Upload Debug APK Artifact
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
