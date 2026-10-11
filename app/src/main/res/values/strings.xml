@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">JASHPI AI - Hands-Free Emergency Help</string>
+    <string name="install_apk">Install App</string>
+    <string name="installing">Downloading APK…</string>
+    <string name="sos_title">EMERGENCY SOS</string>
+    <string name="sos_subtitle">Hands-Free Voice &amp; Instant Dispatch</string>
+    <string name="call_police">Call 112 (Police &amp; Unified)</string>
+    <string name="call_ambulance">Call 108 (Ambulance)</string>
+    <string name="status_protected">Protected · Voice Engine Ready</string>
+</resources>

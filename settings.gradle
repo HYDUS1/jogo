@@ -15,4 +15,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "JashpiEmergency"
 include ':app'
-project(':app').projectDir = file('android/app')
